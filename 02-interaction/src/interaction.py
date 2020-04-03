@@ -24,25 +24,43 @@ def c_critical(prob, f1, f2):
     )
 
 
-x_bounds = [[1, 1], [10, 60], [15, 50], [15, 20]]
+x_bounds = [[1, 1], [-25, -5], [25, 45], [25, 30]]
+x_bounds.extend([[min(x_bounds[1]) * min(x_bounds[2]), 
+                 max(x_bounds[1]) * max(x_bounds[2])]])
+x_bounds.extend([[min(x_bounds[1]) * min(x_bounds[3]), 
+                 max(x_bounds[1]) * max(x_bounds[3])]])
+x_bounds.extend([[min(x_bounds[2]) * min(x_bounds[3]), 
+                 max(x_bounds[2]) * max(x_bounds[3])]])
+x_bounds.extend([[min(x_bounds[1]) * min(x_bounds[2]) * min(x_bounds[3]), 
+                 min(x_bounds[1]) * max(x_bounds[2]) * max(x_bounds[3])]])
+
 factors = len(x_bounds)
-experiments = 4
+experiments = 2**3
 samples = 2
 confidence_prob = 0.9
 
+y_bounds = [
+    int(200 + np.mean([min(x_bounds[i]) for i in range(1, 4)])),
+    int(200 + np.mean([max(x_bounds[i]) for i in range(1, 4)])),
+]
+
 combinations = list(itertools.product([-1, 1], repeat=4))
-xn = [combinations[8], combinations[11], combinations[13], combinations[14]]
+xn = combinations[8:]
+def extend_inter(x):
+    x.extend([x[1] * x[2]])
+    x.extend([x[1] * x[3]])
+    x.extend([x[2] * x[3]])
+    x.extend([x[1] * x[2] * x[3]])
+    return x
+
+xn = list(map(list, xn))
+xn = list(map(extend_inter, xn))
 x = [
     [
         min(x_bounds[j]) if xn[i][j] < 0 else max(x_bounds[j])
         for j in range(len(x_bounds))
     ]
     for i in range(len(xn))
-]
-
-y_bounds = [
-    int(200 + np.mean([min(x_bounds[i]) for i in range(1, factors)])),
-    int(200 + np.mean([max(x_bounds[i]) for i in range(1, factors)])),
 ]
 
 

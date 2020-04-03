@@ -1,41 +1,51 @@
-#+TITLE: Fractional tri-factorial experiment design and statistical estimates application
+#+TITLE: Full tri-factorial experiment design with interactions and statistical estimates application
 
-(you can find full source at [[file:src/interaction.py][src/interaction.py]], MIT license)
+(final source at [[file:src/interaction.py][src/interaction.py]], MIT license)
 
 ** Task description
-Design a fractional tri-factorial experiment, find linear regression (the model) and
+Design a full tri-factorial experiment with linear interactions, find linear regression (the model) and
 apply statistical estimates (Cochran's C test, Student's t test, Fisher's F test)
 to find the model adequate to the original object.
 
 ** Initial conditions
 For example, let's define the following factors bounds and their quantity:
-#+BEGIN_SRC python :session ffe
-x_bounds = [[1, 1], [10, 60], [15, 50], [15, 20]]
+#+BEGIN_SRC python :session interaction
+x_bounds = [[1, 1], [-25, -5], [25, 45], [25, 30]]
+x_bounds.extend([[min(x_bounds[1]) * min(x_bounds[2]), 
+                 max(x_bounds[1]) * max(x_bounds[2])]])
+x_bounds.extend([[min(x_bounds[1]) * min(x_bounds[3]), 
+                 max(x_bounds[1]) * max(x_bounds[3])]])
+x_bounds.extend([[min(x_bounds[2]) * min(x_bounds[3]), 
+                 max(x_bounds[2]) * max(x_bounds[3])]])
+x_bounds.extend([[min(x_bounds[1]) * min(x_bounds[2]) * min(x_bounds[3]), 
+                 min(x_bounds[1]) * max(x_bounds[2]) * max(x_bounds[3])]])
+
 factors = len(x_bounds)
 #+END_SRC
 
-For convenience, we add null-factor to the three main factors, which is always equal to one.
-Design of the fractional experiment implies that we use only part of a full experiment (a half):
-#+BEGIN_SRC python :session ffe
-experiments = 4
+For convenience, we add null-factor to the three main factors, which is always equal to one 
+and interactions of factors (we take into account only first-order (linear) interactions).
+For full factorial experiment the number of experiments equals to two to power of factors (real ones):
+#+BEGIN_SRC python :session interaction
+experiments = 2**3
 #+END_SRC
 
 Also, we define the repeats number of the same factors combination and confidence probability
 for statistical estimates:
-#+BEGIN_SRC python :session ffe
+#+BEGIN_SRC python :session interaction
 samples = 2
 confidence_prob = 0.9
 #+END_SRC
 
 For experimentally aquired values we take randomly generated numbers in arbitrarily
 defined bounds:
-#+BEGIN_SRC python :session ffe
+#+BEGIN_SRC python :session interaction
 import random
 import numpy as np
 
 y_bounds = [
-    int(200 + np.mean([min(x_bounds[i]) for i in range(1, factors)])),
-    int(300 + np.mean([max(x_bounds[i]) for i in range(1, factors)])),
+    int(200 + np.mean([min(x_bounds[i]) for i in range(1, 4)])),
+    int(200 + np.mean([max(x_bounds[i]) for i in range(1, 4)])),
 ]
 y = [
         [random.randint(min(y_bounds), max(y_bounds)) for i in range(samples)]
@@ -45,13 +55,22 @@ y = [
 
 ** Experiment plan
 Let's fill experiment matrix with encoded factors values and response function values. From possible combinations
-we choose only those, that comply with full plan properties (symmetrical, normed, orthogonal).
-For encoded values matrix (=xn=) we create corresponding decoded matrix =x=:
-#+BEGIN_SRC python :session ffe
+we choose only those, that have one at the beginning. Also we define procedure to extend selected combinations
+with linear interactions. For encoded values matrix (=xn=) we create corresponding decoded matrix =x=:
+#+BEGIN_SRC python :session interaction
 import itertools
 
 combinations = list(itertools.product([-1, 1], repeat=4))
-xn = [combinations[8], combinations[11], combinations[13], combinations[14]]
+xn = combinations[8:]
+def extend_inter(x):
+    x.extend([x[1] * x[2]])
+    x.extend([x[1] * x[3]])
+    x.extend([x[2] * x[3]])
+    x.extend([x[1] * x[2] * x[3]])
+    return x
+
+xn = list(map(list, xn))
+xn = list(map(extend_inter, xn))
 x = [
     [
         min(x_bounds[j]) if xn[i][j] < 0 else max(x_bounds[j])
@@ -62,7 +81,7 @@ x = [
 #+END_SRC
 
 For output formatting we use =prettytable= module. Let's define function to create experiment matrix:
-#+BEGIN_SRC python :results output org :session ffe :exports both
+#+BEGIN_SRC python :results output org :session interaction :exports both
 from prettytable import PrettyTable
 
 def create_matrix():
@@ -83,19 +102,23 @@ print(matrix)
 
 #+RESULTS:
 #+begin_src org
-+--------------+----+----+----+----+-----+-----+
-| Experiment # | x0 | x1 | x2 | x3 |  y1 |  y2 |
-+--------------+----+----+----+----+-----+-----+
-|      1       | 1  | -1 | -1 | -1 | 285 | 287 |
-|      2       | 1  | -1 | 1  | 1  | 312 | 219 |
-|      3       | 1  | 1  | -1 | 1  | 286 | 336 |
-|      4       | 1  | 1  | 1  | -1 | 284 | 333 |
-+--------------+----+----+----+----+-----+-----+
++--------------+----+----+----+----+----+----+----+----+-----+-----+
+| Experiment # | x0 | x1 | x2 | x3 | x4 | x5 | x6 | x7 |  y1 |  y2 |
++--------------+----+----+----+----+----+----+----+----+-----+-----+
+|      1       | 1  | -1 | -1 | -1 | 1  | 1  | 1  | -1 | 213 | 218 |
+|      2       | 1  | -1 | -1 | 1  | 1  | -1 | -1 | 1  | 214 | 212 |
+|      3       | 1  | -1 | 1  | -1 | -1 | 1  | -1 | 1  | 216 | 222 |
+|      4       | 1  | -1 | 1  | 1  | -1 | -1 | 1  | -1 | 220 | 220 |
+|      5       | 1  | 1  | -1 | -1 | -1 | -1 | 1  | 1  | 221 | 216 |
+|      6       | 1  | 1  | -1 | 1  | -1 | 1  | -1 | -1 | 219 | 211 |
+|      7       | 1  | 1  | 1  | -1 | 1  | -1 | -1 | -1 | 211 | 221 |
+|      8       | 1  | 1  | 1  | 1  | 1  | 1  | 1  | 1  | 223 | 218 |
++--------------+----+----+----+----+----+----+----+----+-----+-----+
 #+end_src
 
 ** Statistical estimates of the results
 For critical test values we use =scipy= module:
-#+BEGIN_SRC python :session ffe
+#+BEGIN_SRC python :session interaction
 import scipy
 from scipy.stats import f
 from scipy.stats import t
@@ -113,13 +136,13 @@ def c_critical(prob, f1, f2):
 *** Cochran's C test
 To test variance homogeneity of response function by rows, we use Cochran's C test. Estimate of Cochran's test
 is calculated as a ratio of maximal variance to the variances sum:
-#+BEGIN_SRC python :session ffe
+#+BEGIN_SRC python :session interaction
 s2_y = [np.var(y[i]) for i in range(experiments)]
 stat_c = max(s2_y) / sum(s2_y)
 #+END_SRC
 
 Let's calculate the critical value and compare it to the estimate:
-#+BEGIN_SRC python :results output org :session ffe :exports both
+#+BEGIN_SRC python :results output org :session interaction :exports both
 crit_c = c_critical(confidence_prob, samples-1, experiments)
 
 print(f"Calculated C statistics: {round(stat_c, 3)}")
@@ -130,14 +153,14 @@ print(
 
 #+RESULTS:
 #+begin_src org
-Calculated C statistics: 0.638
-Critical C for confidence probability of 0.9: 0.853
+Calculated C statistics: 0.358
+Critical C for confidence probability of 0.9: 0.614
 #+end_src
 
 The estimate is lower than critical value, hence variances are homogeneous. But what to do, if they
 are not homogeneous? To prevent this, we envelop response generation code with =while= loop,
 and on every negative result increase sample rate by one:
-#+BEGIN_SRC python :results output org :session ffe :exports both
+#+BEGIN_SRC python :results output org :session interaction :exports both
 while True:
     y = [
         [random.randint(min(y_bounds), max(y_bounds)) for i in range(samples)]
@@ -161,46 +184,54 @@ while True:
 
 #+RESULTS:
 #+begin_src org
-+--------------+----+----+----+----+-----+-----+
-| Experiment # | x0 | x1 | x2 | x3 |  y1 |  y2 |
-+--------------+----+----+----+----+-----+-----+
-|      1       | 1  | -1 | -1 | -1 | 251 | 272 |
-|      2       | 1  | -1 | 1  | 1  | 280 | 304 |
-|      3       | 1  | 1  | -1 | 1  | 314 | 293 |
-|      4       | 1  | 1  | 1  | -1 | 341 | 221 |
-+--------------+----+----+----+----+-----+-----+
-Calculated C statistics: 0.908
-Critical C for confidence probability of 0.9: 0.853
++--------------+----+----+----+----+----+----+----+----+-----+-----+
+| Experiment # | x0 | x1 | x2 | x3 | x4 | x5 | x6 | x7 |  y1 |  y2 |
++--------------+----+----+----+----+----+----+----+----+-----+-----+
+|      1       | 1  | -1 | -1 | -1 | 1  | 1  | 1  | -1 | 218 | 222 |
+|      2       | 1  | -1 | -1 | 1  | 1  | -1 | -1 | 1  | 215 | 218 |
+|      3       | 1  | -1 | 1  | -1 | -1 | 1  | -1 | 1  | 223 | 210 |
+|      4       | 1  | -1 | 1  | 1  | -1 | -1 | 1  | -1 | 209 | 211 |
+|      5       | 1  | 1  | -1 | -1 | -1 | -1 | 1  | 1  | 223 | 223 |
+|      6       | 1  | 1  | -1 | 1  | -1 | 1  | -1 | -1 | 210 | 213 |
+|      7       | 1  | 1  | 1  | -1 | 1  | -1 | -1 | -1 | 214 | 218 |
+|      8       | 1  | 1  | 1  | 1  | 1  | 1  | 1  | 1  | 213 | 213 |
++--------------+----+----+----+----+----+----+----+----+-----+-----+
+Calculated C statistics: 0.758
+Critical C for confidence probability of 0.9: 0.614
 Variances are not equal. Increasing sample size...
-+--------------+----+----+----+----+-----+-----+-----+
-| Experiment # | x0 | x1 | x2 | x3 |  y1 |  y2 |  y3 |
-+--------------+----+----+----+----+-----+-----+-----+
-|      1       | 1  | -1 | -1 | -1 | 234 | 231 | 296 |
-|      2       | 1  | -1 | 1  | 1  | 337 | 225 | 275 |
-|      3       | 1  | 1  | -1 | 1  | 322 | 270 | 238 |
-|      4       | 1  | 1  | 1  | -1 | 275 | 294 | 302 |
-+--------------+----+----+----+----+-----+-----+-----+
-Calculated C statistics: 0.486
-Critical C for confidence probability of 0.9: 0.708
++--------------+----+----+----+----+----+----+----+----+-----+-----+-----+
+| Experiment # | x0 | x1 | x2 | x3 | x4 | x5 | x6 | x7 |  y1 |  y2 |  y3 |
++--------------+----+----+----+----+----+----+----+----+-----+-----+-----+
+|      1       | 1  | -1 | -1 | -1 | 1  | 1  | 1  | -1 | 222 | 215 | 208 |
+|      2       | 1  | -1 | -1 | 1  | 1  | -1 | -1 | 1  | 212 | 216 | 215 |
+|      3       | 1  | -1 | 1  | -1 | -1 | 1  | -1 | 1  | 214 | 215 | 216 |
+|      4       | 1  | -1 | 1  | 1  | -1 | -1 | 1  | -1 | 214 | 219 | 216 |
+|      5       | 1  | 1  | -1 | -1 | -1 | -1 | 1  | 1  | 211 | 218 | 216 |
+|      6       | 1  | 1  | -1 | 1  | -1 | 1  | -1 | -1 | 208 | 215 | 220 |
+|      7       | 1  | 1  | 1  | -1 | 1  | -1 | -1 | -1 | 219 | 214 | 209 |
+|      8       | 1  | 1  | 1  | 1  | 1  | 1  | 1  | 1  | 215 | 222 | 219 |
++--------------+----+----+----+----+----+----+----+----+-----+-----+-----+
+Calculated C statistics: 0.333
+Critical C for confidence probability of 0.9: 0.465
 Variances are equal.
 #+end_src
 
 *** Regression equation and Student's t test
 Let's calculate response mean values by rows:
-#+BEGIN_SRC python :session ffe
+#+BEGIN_SRC python :session interaction
 my = [np.mean(y[i]) for i in range(len(y))]
 #+END_SRC
 
 Let's sort encoded factors values by columns and calculate regression coefficients for
 encoded values (also called regression coeficients estimates):
-#+BEGIN_SRC python :session ffe
+#+BEGIN_SRC python :session interaction
 xn_col = np.array(list(zip(*xn)))
 beta = [np.mean(my * xn_col[i]) for i in range(experiments)]
 #+END_SRC
 
 To test the results we can calculate function value, using found coefficients and encoded factors.
 Calculation results must be equal to response mean values:
-#+BEGIN_SRC python :results output org :session ffe :exports both
+#+BEGIN_SRC python :results output org :session interaction :exports both
 yn = [sum(beta * np.array(xn[i])) for i in range(experiments)]
 
 print(f"Means: {[round(my[i], 3) for i in range(experiments)]}")
@@ -209,12 +240,12 @@ print(f"Calculated function: {[round(yn[i], 3) for i in range(experiments)]}")
 
 #+RESULTS:
 #+begin_src org
-Means: [253.667, 279.0, 276.667, 290.333]
-Calculated function: [253.667, 279.0, 276.667, 290.333]
+Means: [215.0, 214.333, 215.0, 216.333, 215.0, 214.333, 214.0, 218.667]
+Calculated function: [215.0, 214.333, 215.0, 216.333, 215.0, 214.333, 214.0, 218.667]
 #+end_src
 
 We decode the coefficients, to find regular linear regression for decoded factors:
-#+BEGIN_SRC python :session ffe
+#+BEGIN_SRC python :session interaction
 delta_x = [abs(x_bounds[i][0] - x_bounds[i][1]) / 2 for i in range(len(x_bounds))]
 x0 = [(x_bounds[i][0] + x_bounds[i][1]) / 2 for i in range(len(x_bounds))]
 b = [beta[0] - sum(beta[i] * x0[i] / delta_x[i] for i in range(1, factors))]
@@ -224,14 +255,14 @@ b.extend([beta[i] / delta_x[i] for i in range(1, factors)])
 Now we conduct Student's t test to find significant regression coefficients.
 Let's find general recreation estimate, coefficients variance estimate and
 Student's estimate:
-#+BEGIN_SRC python :session ffe
+#+BEGIN_SRC python :session interaction
 s2_b = sum(s2_y) / len(s2_y)
 s_beta = np.sqrt(s2_b / samples / experiments)
 stat_t = [abs(beta[i]) / s_beta for i in range(factors)]
 #+END_SRC
 
 Let's calculate the critical value and compare it to the estimate:
-#+BEGIN_SRC python :results output org :session ffe :exports both
+#+BEGIN_SRC python :results output org :session interaction :exports both
 crit_t = t_critical(confidence_prob, (samples-1)*experiments)
 
 print(f"Calculated t statistics: {[round(stat_t[i], 3) for i in range(len(stat_t))]}")
@@ -240,14 +271,14 @@ print(f"Critical t for confidence probability of {confidence_prob}: {round(crit_
 
 #+RESULTS:
 #+begin_src org
-Calculated t statistics: [28.97, 0.904, 1.027, 0.307]
-Critical t for confidence probability of 0.9: 1.397
+Calculated t statistics: [301.063, 0.233, 0.932, 0.816, 0.233, 0.583, 1.282, 0.583]
+Critical t for confidence probability of 0.9: 1.337
 #+end_src
 
 As we can see, not all coefficients pass the test (=stat_t[i] > crit_t=).
 Decoded coefficients, that don't pass the test we equate to zero, and
 number of significant coefficients we write to a variable:
-#+BEGIN_SRC python :results output org :session ffe :exports both
+#+BEGIN_SRC python :results output org :session interaction :exports both
 significant_coeffs = 0
 for i in range(len(stat_t)):
     if stat_t[i] < crit_t:
@@ -259,12 +290,12 @@ print(f"Regression coefficients: {[round(b[i], 3) for i in range(len(b))]}")
 
 #+RESULTS:
 #+begin_src org
-Regression coefficients: [224.376, 0, 0, 0]
+Regression coefficients: [206.505, 0, 0, 0, 0, 0, 0, 0]
 #+end_src
 
 *** Fisher's F test
 First, we calculate function values for found regression equation:
-#+BEGIN_SRC python :results output org :session ffe :exports both
+#+BEGIN_SRC python :results output org :session interaction :exports both
 y_calc = [sum((b * np.array(x))[i]) for i in range(experiments)]
 
 print(
@@ -274,12 +305,12 @@ print(
 
 #+RESULTS:
 #+begin_src org
-Calculated values of model: [224.376, 224.376, 224.376, 224.376]
+Calculated values of model: [206.505, 206.505, 206.505, 206.505, 206.505, 206.505, 206.505, 206.505]
 #+end_src
 
 Let's calculate adequate model variance and find Fisher's estimate, which equals to ratio of
 adequate model variance to recreation variance:
-#+BEGIN_SRC python :session ffe
+#+BEGIN_SRC python :session interaction
 s2_adeq = (
     samples
     / (experiments - significant_coeffs)
@@ -289,7 +320,7 @@ stat_f = s2_adeq / s2_b
 #+END_SRC
 
 Let's calculate the critical value and compare it to the estimate:
-#+BEGIN_SRC python :results output org :session ffe :exports both
+#+BEGIN_SRC python :results output org :session interaction :exports both
 crit_f = f_critical(confidence_prob, (samples-1)*experiments, experiments - significant_coeffs)
 
 print(f"Calculated F statistics: {round(stat_f, 3)}")
@@ -298,8 +329,8 @@ print(f"Critical F for confidence probability of {confidence_prob}: {round(crit_
 
 #+RESULTS:
 #+begin_src org
-Calculated F statistics: 30.332
-Critical F for confidence probability of 0.9: 59.439
+Calculated F statistics: 156.307
+Critical F for confidence probability of 0.9: 61.35
 #+end_src
 
-The estimate is lower than critical value, thus the model is adequate to the original.
+The estimate is higher than critical value, thus the model is not adequate to the original.
