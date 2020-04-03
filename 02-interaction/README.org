@@ -1,6 +1,6 @@
 #+TITLE: Fractional tri-factorial experiment design and statistical estimates application
 
-(you can find full source at [[file:src/interaction.py][=src/interaction.py=]], MIT license)
+(you can find full source at [[file:src/interaction.py][src/interaction.py]], MIT license)
 
 ** Task description
 Design a fractional tri-factorial experiment, find linear regression (the model) and
