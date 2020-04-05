@@ -24,15 +24,16 @@ def c_critical(prob, f1, f2):
     )
 
 
-x_bounds = [[1, 1], [-25, -5], [25, 45], [25, 30]]
-x_bounds.extend([[min(x_bounds[1]) * min(x_bounds[2]), 
-                 max(x_bounds[1]) * max(x_bounds[2])]])
-x_bounds.extend([[min(x_bounds[1]) * min(x_bounds[3]), 
-                 max(x_bounds[1]) * max(x_bounds[3])]])
-x_bounds.extend([[min(x_bounds[2]) * min(x_bounds[3]), 
-                 max(x_bounds[2]) * max(x_bounds[3])]])
-x_bounds.extend([[min(x_bounds[1]) * min(x_bounds[2]) * min(x_bounds[3]), 
-                 min(x_bounds[1]) * max(x_bounds[2]) * max(x_bounds[3])]])
+x_bounds = [np.array([1, 1]), 
+            np.array([-25, -5]), 
+            np.array([25, 45]), 
+            np.array([25, 30])]
+
+def extend_inter(a):
+    a.extend([a[1] * a[2], a[1] * a[3], a[2] * a[3], a[1] * a[2] * a[3]])
+    return a
+
+x_bounds = extend_inter(x_bounds)
 
 factors = len(x_bounds)
 experiments = 2**3
@@ -46,12 +47,6 @@ y_bounds = [
 
 combinations = list(itertools.product([-1, 1], repeat=4))
 xn = combinations[8:]
-def extend_inter(x):
-    x.extend([x[1] * x[2]])
-    x.extend([x[1] * x[3]])
-    x.extend([x[2] * x[3]])
-    x.extend([x[1] * x[2] * x[3]])
-    return x
 
 xn = list(map(list, xn))
 xn = list(map(extend_inter, xn))
