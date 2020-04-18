@@ -128,11 +128,11 @@ crit_t = t_critical(confidence_prob, (samples - 1) * experiments)
 print(f"Calculated t statistics: {[round(stat_t[i], 3) for i in range(len(stat_t))]}")
 print(f"Critical t for confidence probability of {confidence_prob}: {round(crit_t, 3)}")
 
-significant_coeffs = 0
+significant_coeffs = len(b)
 for i in range(len(stat_t)):
     if stat_t[i] < crit_t:
         b[i] = 0
-        significant_coeffs += 1
+        significant_coeffs -= 1
 
 print(f"Regression coefficients: {[round(b[i], 3) for i in range(len(b))]}")
 
