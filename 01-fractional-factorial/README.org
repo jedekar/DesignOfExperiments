@@ -47,7 +47,7 @@ y = [
     ]
 #+END_SRC
 
-** Experiment plan
+** Experiment design
 Let's fill experiment matrix with encoded factors values and response function values. From possible combinations
 we choose only those, that comply with full plan properties (symmetrical, normed, orthogonal).
 For encoded values matrix (=xn=) we create corresponding decoded matrix =x=:
