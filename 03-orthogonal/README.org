@@ -364,4 +364,31 @@ Calculated F statistics: 8.707
 Critical F for confidence probability of 0.9: 2.076
 #+end_src
 
-As we can see, this model is not adequate.
+As we can see, this model is not adequate. For that reason we create =bool= variable
+=found= and envelop the whole procedure into =while= loop:
+#+BEGIN_SRC python :results output org :session orthogonal :exports both
+found = False
+
+while not found:
+    # Cochran's C test
+    while True:
+        y = [
+            [random.randint(min(y_bounds), max(y_bounds)) for i in range(samples)]
+            for j in range(experiments)
+        ]
+
+...
+...
+...
+
+    print(f"Calculated F statistics: {round(stat_f, 3)}")
+    print(f"Critical F for confidence probability of {confidence_prob}: {round(crit_f, 3)}")
+
+    if stat_f > crit_f:
+        print("Model is inadequate.")
+    else:
+        print("Model is adequate.")
+        found = True
+#+END_SRC
+
+This code will generate adequate model.
