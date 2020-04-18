@@ -1,4 +1,4 @@
-#+TITLE: Full tri-factorial experiment design with interactions and statistical estimates application
+#+TITLE: Full tri-factorial experiment design with interactions
 
 (final source at [[file:src/interaction.py][src/interaction.py]], MIT license)
 
